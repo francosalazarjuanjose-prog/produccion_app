@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Registro de Producción</title>
+    <style>
+        /* === FUENTES ORIGINALES === */
+        @font-face {
+            font-family: 'A Pompadour'; 
+            src: url('fonts/03_ApompadourBoldSample.otf') format('opentype'), 
+                 url('fonts/03_ApompadourBoldSample.ttf') format('truetype'); 
+            font-weight: bold; 
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Serenity'; 
+            src: url('fonts/Serenity-ExtraLight.otf') format('opentype');
+            font-weight: 200; 
+            font-style: normal;
+        }
+
+        /* === ESTRUCTURA GLOBAL ANTI-SCROLL Y BOX-SIZING === */
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100vh; width: 100vw;
+            margin: 0; padding: 0;
+            overflow: hidden;
+            font-family: 'Serenity', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            font-weight: 200;
+            font-size: 16px; 
+            background-color: #FFFFFF; /* Fondo base blanco */
+            display: flex; flex-direction: column; 
+            color: #0E4740;
+        }
+        
+        /* === SPLASH SCREEN FINAL === */
+        #splashScreen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: #FFFFFF;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        #splashScreen.visible {
+            opacity: 1;
+        }
+        #splashScreen img {
+            width: 350px;
+            max-width: 80%;
+            max-height: 60%;
+        }
+        
+        /* === HEADER Y FOOTER ULTRA-COMPACTOS === */
+        .app-header {
+            flex-shrink: 0; background-color: #FFFFFF;
+            padding: 5px 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); z-index: 100;
+        }
+        main {
+            flex-grow: 1; overflow-y: hidden; /* Oculto por defecto, las pantallas lo manejan */
+            padding: 0; /* AJUSTE CLAVE: Sin padding aquí */
+            display: flex; justify-content: center; align-items: stretch; /* Estirar el contenido */
+        }
+        .app-footer {
+            flex-shrink: 0; background-color: #FFFFFF;
+            padding: 2px; text-align: center; border-top: 1px solid #e0e0e0;
+        }
+        .app-logo-footer { max-height: 28px; vertical-align: middle; }
+
+        #mainScreenContainer { width: 100%; height: 100%; }
+        .screen {
+            width: 100%; height: 100%; padding: 12px; /* Padding interno para el contenido */
+            background-color: #FFFFFF; 
+            text-align: center; position: relative;
+            display: flex; flex-direction: column;
+        }
+        .screen-content {
+             flex-grow: 1; overflow-y: auto;
+        }
+        
+        .hidden { display: none !important; }
+
+        /* === PANTALLA DE LOGIN === */
+        #screenLogin .screen-content {
+            display: flex; flex-direction: column;
+            justify-content: center; height: 100%;
+        }
+        #screenLogin h2 {
+            font-size: 1.8rem; margin-bottom: 25px;
+        }
+        #screenLogin label {
+            font-size: 1.1em; margin-bottom: 5px;
+        }
+        #screenLogin input {
+            font-size: 1.2rem; padding: 12px;
+            margin-bottom: 15px;
+        }
+        .logo-container-bottom-center { 
+            flex-shrink: 0; text-align: center;
+            padding-top: 15px;
+        }
+        .app-logo-bottom-center { max-height: 35px; }
+
+        /* INFO-BAR COMPACTO */
+        .info-bar { text-align: left; font-size: 0.8rem; line-height: 1.4; background-color: #E8F3F1; border: 1px solid #B8D9D4; border-radius: 5px; }
+        .info-bar-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 5px 8px; }
+        .info-bar-header p { margin: 0; font-size: 0.9rem; }
+        .info-bar-toggle-btn, .logout-button { padding: 4px 8px; border: none; border-radius: 4px; color: white; font-family: 'Serenity', sans-serif; font-size: 0.75rem; cursor: pointer; }
+        .info-bar-toggle-btn { background-color: #17a2b8; }
+        .logout-button { background-color: #dc3545; margin-left: 8px; }
+        .info-bar-details { border-top: 1px dashed #B8D9D4; margin-top: 5px; padding: 5px 8px; display: none; }
+        .info-bar.expanded .info-bar-details { display: block; }
+        .info-bar p { margin: 2px 0; color: #0E4740; }
+        .info-bar strong { color: #005c50; font-weight: 400; }
+
+        /* FORMULARIOS COMPACTOS */
+        .form-group { margin-bottom: 8px; text-align: left; }
+        label { display: block; margin-bottom: 3px; font-family: 'Serenity', sans-serif; font-weight: 400; color: #008776; text-align: left; font-size: 0.9em; }
+        input, textarea, select { width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ced4da; border-radius: 4px; font-family: 'Serenity', sans-serif; font-weight: 200; font-size: 1rem; color: #0E4740; }
+        textarea { resize: vertical; min-height: 40px; }
+
+        .form-row-3-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; align-items: end; }
+        .form-row-3-col .form-group { margin-bottom: 0; }
+
+        /* BOTONES */
+        button.action-button { width: 100%; padding: 12px; background-color: #008776; color: #FFFFFF; border: none; border-radius: 5px; cursor: pointer; font-family: 'A Pompadour', sans-serif; font-weight: bold; font-size: 1.2em; margin-top: 8px; transition: background-color 0.2s; }
+        .back-button { background-color: #6c757d !important; font-family: 'Serenity', sans-serif; font-weight: 400; margin-bottom: 8px !important;}
+        button.action-button:hover, .back-button:hover { background-color: #0E4740; }
+        
+        /* BOTONES DE SELECCIÓN GENERALES */
+        .selection-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+        .selection-buttons button { width: 100%; padding: 10px 5px; background-color: #008776; color: #FFFFFF; border: 2px solid transparent; border-radius: 5px; cursor: pointer; font-family: 'Serenity', sans-serif; font-weight: 400; font-size: 1rem; transition: all 0.2s; min-height: 60px; display: flex; align-items: center; justify-content: center; text-align: center; }
+        .selection-buttons button.selected { background-color: #0E4740; font-weight: 600; border: 2px solid #005c50; transform: scale(1.02); }
+        
+        #botonesProcesos { grid-template-columns: repeat(2, 1fr); }
+        
+        #turnos-layout { display: flex; gap: 10px; flex-grow: 1; }
+        #turnos-normales, #turnos-especiales { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+        #turnos-normales button, #turnos-especiales button {
+             width: 100%; flex-grow: 1; padding: 8px 5px; background-color: #008776; 
+             color: #FFFFFF; border: 2px solid transparent; border-radius: 5px; 
+             cursor: pointer; font-family: 'Serenity', sans-serif; font-weight: 400; 
+             font-size: 1rem; transition: all 0.2s; min-height: 55px;
+             display: flex; align-items: center; justify-content: center; text-align: center;
+        }
+
+        #btnIniciarParo, #btnFinalizarParo { width: 90px; height: 90px; padding: 5px; color: white; border: none; border-radius: 50%; cursor: pointer; font-size: 0.9rem; margin: 5px auto; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; box-shadow: 0 3px 6px rgba(0,0,0,0.2); transition: all 0.2s; font-family: 'A Pompadour', sans-serif; font-weight: bold;}
+        #btnIniciarParo { background-color: #e60000; } #btnIniciarParo:hover { background-color: #b30000; transform: scale(1.05); }
+        #btnFinalizarParo { background-color: #ff8c00; } #btnFinalizarParo:hover { background-color: #cc7000; transform: scale(1.05); }
+        
+        #btnGuardarParo,
+        #screenFinalizarKPI .action-button[onclick^="confirmarFinalizar"], 
+        #screenResumenTurno .action-button[onclick^="finalizarYResetear"],
+        #screenActividades .action-button[onclick^="finalizarTurnoPantalla"] {
+            background-color: #7CFC00 !important; color: #000000 !important;
+            font-family: 'A Pompadour', sans-serif; font-weight: bold;
+        }
+        #btnGuardarParo:hover,
+        #screenFinalizarKPI .action-button[onclick^="confirmarFinalizar"]:hover, 
+        #screenResumenTurno .action-button[onclick^="finalizarYResetear"]:hover,
+        #screenActividades .action-button[onclick^="finalizarTurnoPantalla"]:hover {
+            background-color: #32CD32 !important;
+        }
+        
+        .message-area { margin-top: 8px; padding: 8px; border: 1px solid transparent; border-radius: 4px; font-size: 0.9em; min-height: 16px; font-family: 'Serenity', sans-serif; font-weight: 400;}
+        .exito { border-color: #28a745; background-color: #d4edda; color: #155724; }
+        .error { border-color: #dc3545; background-color: #f8d7da; color: #721c24; }
+        .advertencia { border-color: #ffc107; background-color: #fff3cd; color: #856404; }
+        h3.step-header, h4.sub-header { font-family: 'A Pompadour', sans-serif; font-weight: bold; color: #0E4740; }
+        h3.step-header { font-size: 1.3em; margin: 0 0 12px 0; border-bottom: 2px solid #008776; padding-bottom: 6px; flex-shrink: 0; }
+        h4.sub-header { font-size: 1.1em; margin: 0 0 8px 0; border-bottom: 1px solid #008776; padding-bottom: 4px; }
+        hr { border: 0; border-top: 1px solid #008776; margin: 10px 0; }
+        
+        .registro-tipo-container { padding: 5px 0; border-top: 1px dashed #B8D9D4; margin-top: 8px; }
+        #actividades-layout { display: flex; gap: 10px; width: 100%; flex-grow: 1; }
+        .columna-actividad { flex: 1; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9; display: flex; flex-direction: column; }
+        .columna-actividad h4.sub-header { margin-top: 0; }
+        #resumenProduccion p { margin: 4px 0; font-size: 0.95em; }
+        #controlParo p { margin: 5px 0; }
+
+        #resumenContenido {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
+            text-align: left; font-size: 0.9rem; line-height: 1.5; padding: 5px;
+        }
+        .resumen-columna { background-color: #F5FAF9; padding: 8px; border: 1px solid #B8D9D4; border-radius: 5px; }
+        .resumen-columna h4 { margin: 0 0 8px 0; padding-bottom: 4px; border-bottom: 1px solid #008776; font-family: 'A Pompadour', sans-serif; font-size: 1em; }
+        .resumen-columna p { margin: 4px 0; }
+        .resumen-observaciones { grid-column: 1 / -1; }
+        
+        #tablaEstadoMaquinas { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.8rem; }
+        #tablaEstadoMaquinas th, #tablaEstadoMaquinas td { border: 1px solid #B8D9D4; padding: 4px; text-align: left; }
+
+        /* === Pantalla Finalizar KPI (Retal) Súper Compacta === */
+        #screenFinalizarKPI {
+             justify-content: space-between;
+        }
+        #screenFinalizarKPI .screen-content {
+            flex-grow: 0; padding: 5px 0;
+        }
+        #screenFinalizarKPI .form-group {
+            margin-bottom: 8px;
+        }
+        #screenFinalizarKPI label {
+            font-size: 1em; margin-bottom: 2px; 
+        }
+        #screenFinalizarKPI input,
+        #screenFinalizarKPI textarea {
+            padding: 8px; font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+        #screenFinalizarKPI textarea {
+            min-height: 45px; max-height: 60px;
+        }
+        #screenFinalizarKPI .message-area {
+            margin-top: 5px; padding: 6px;
+        }
+        #screenFinalizarKPI .button-container {
+             flex-shrink: 0;
+        }
+        #screenFinalizarKPI .action-button {
+            padding: 12px; font-size: 1.1em;
+            margin-top: 5px;
+        }
+        
+        /* ===== ESTILOS v5 PARA PANTALLA DE CALIDAD (4 COLUMNAS SIN SCROLL) ===== */
+        #formularioInspeccionDinamico {
+            flex-grow: 1; /* Ocupa el espacio disponible */
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 COLUMNAS */
+            gap: 10px 15px; /* Espacio vertical y horizontal */
+            align-content: start; /* Alinea los items al inicio */
+            overflow-y: auto; /* Scroll SOLO aquí si es estrictamente necesario */
+        }
+        
+        .form-group-dinamico {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 5px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .form-group-dinamico label {
+            font-size: 0.9em; /* Letra del encabezado más grande */
+            font-weight: 600;
+            color: #005c50;
+            text-align: center;
+            line-height: 1.2;
+            min-height: 2.5em; /* Asegura altura para 2 líneas */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .form-group-dinamico .input-wrapper { display: flex; gap: 5px; }
+        
+        /* Estilo para el input de Lote */
+        #inspeccionLote {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 8px;
+            border-width: 2px;
+            border-color: #007bff;
+        }
+
+        /* Estilo para los otros inputs */
+        .form-group-dinamico input[type="number"],
+        .form-group-dinamico input[type="text"] {
+            padding: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            border-width: 2px;
+        }
+
+        .boolean-btn {
+            flex-grow: 1;
+            padding: 8px 4px;
+            border: 2px solid #ced4da;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        .boolean-btn.selected { color: white; font-weight: bold; }
+        .boolean-btn.conforme.selected { background-color: #28a745; border-color: #1c7430; }
+        .boolean-btn.no-conforme.selected { background-color: #dc3545; border-color: #a71d2a; }
+        /* ===== FIN DE ESTILOS v5 ===== */
+    </style>
+</head>
+<body>
+    <div id="splashScreen">
+        <img src="images/logo_agrobol.jpg" alt="Logo AGROBOL S.A.S BIC">
+    </div>
+
+    <header class="app-header hidden">
+        <div id="infoBarContainer" class="info-bar">
+             <div class="info-bar-header" onclick="toggleInfoBar()">
+                <p><strong>Usuario:</strong> <span id="infoUsuario_Header"></span></p>
+                <div>
+                    <button class="info-bar-toggle-btn">Detalles</button>
+                    <button onclick="cerrarSesion()" class="logout-button">Salir</button>
+                </div>
+            </div>
+            <div class="info-bar-details">
+                <p><strong>Turno:</strong> <span id="infoTurno_Header"></span></p>
+                <p><strong>Proceso:</strong> <span id="infoProceso_Header"></span></p>
+                <p><strong>Máquina:</strong> <span id="infoMaquina_Header"></span></p>
+                <p><strong>Referencia:</strong> <span id="infoReferencia_Header"></span></p>
+                <p><strong>ID Turno:</strong> <span id="idRegistro_Header"></span></p>
+            </div>
+        </div>
+    </header>
+    <main>
+        <div id="mainScreenContainer">
+            <div id="screenLogin" class="screen hidden">
+                <div class="screen-content">
+                    <h2>Iniciar Sesión</h2>
+                    <div class="form-group"> <label for="id_usuario">ID de Usuario:</label> <input type="text" id="id_usuario" required> </div>
+                    <div class="form-group"> <label for="contrasena">Contraseña (Cédula):</label> <input type="password" id="contrasena" required> </div>
+                    <button class="action-button" onclick="realizarLogin()">Ingresar</button>
+                    <div id="resultadoLogin" class="message-area"></div>
+                </div>
+                <div class="logo-container-bottom-center"><img src="images/logo_agrobol.jpg" alt="Logo AGROBOL S.A.S BIC" class="app-logo-bottom-center"></div>
+            </div>
+            <div id="screenTurno" class="screen hidden">
+                <h3 class="step-header">1. Seleccione Turno</h3>
+                <div id="turnos-layout" class="screen-content">
+                    <div id="turnos-normales"></div>
+                    <div id="turnos-especiales"></div>
+                </div>
+            </div>
+            <div id="screenProceso" class="screen hidden">
+                <h3 class="step-header">2. Seleccione Proceso</h3>
+                <div class="screen-content">
+                    <div id="botonesProcesos" class="selection-buttons"></div>
+                </div>
+                <button onclick="irAtras()" class="action-button back-button">« Volver a Turnos</button>
+            </div>
+            <div id="screenMaquina" class="screen hidden">
+                <h3 class="step-header">3. Seleccione Máquina</h3>
+                <div class="screen-content">
+                    <div id="botonesMaquinas" class="selection-buttons"></div>
+                </div>
+                <button onclick="irAtras()" class="action-button back-button">« Volver a Procesos</button>
+            </div>
+            <div id="screenTipoProducto" class="screen hidden">
+                <h3 class="step-header">4. Seleccione Tipo de Producto</h3>
+                <div class="screen-content">
+                    <div id="botonesTiposProducto" class="selection-buttons"></div>
+                </div>
+                <button onclick="irAtras()" class="action-button back-button">« Volver a Máquinas</button>
+            </div>
+            <div id="screenLineaProducto" class="screen hidden">
+                <h3 class="step-header">5. Seleccione Línea de Producto</h3>
+                <div class="screen-content">
+                    <div id="botonesLineasProducto" class="selection-buttons"></div>
+                </div>
+                <button onclick="irAtras()" class="action-button back-button">« Volver a Tipo de Producto</button>
+            </div>
+            <div id="screenTratamiento" class="screen hidden">
+                <h3 class="step-header">6. Seleccione Tratamiento</h3>
+                <div class="screen-content">
+                    <div id="botonesTratamiento" class="selection-buttons"></div>
+                </div>
+                <button onclick="irAtras()" class="action-button back-button">« Volver a Líneas de Producto</button>
+            </div>
+            <div id="screenReferencia" class="screen hidden">
+                <h3 class="step-header">7. Seleccione Referencia</h3>
+                <div class="screen-content">
+                    <div id="botonesReferencias" class="selection-buttons"></div>
+                </div>
+                <button onclick="irAtras()" class="action-button back-button">« Volver a Tratamiento</button>
+            </div>
+            <div id="screenIniciarKPI" class="screen hidden">
+                <h3 class="step-header">8. Confirmar e Iniciar Registro</h3>
+                <div class="screen-content">
+                    <div class="form-row-3-col">
+                        <div class="form-group"><label for="fechaTurno">Fecha:</label><input type="date" id="fechaTurno"></div>
+                        <div class="form-group"><label>Hora Inicio:</label><input type="text" id="horaInicioTurnoDisplay" readonly style="background-color:#e9ecef;"></div>
+                        <div class="form-group"><label for="numeroCapas">Capas:</label><input type="number" id="numeroCapas" min="1" step="1" value="1"></div>
+                    </div>
+                    <div id="resultadoInicioTurno" class="message-area"></div>
+                </div>
+                <button class="action-button" onclick="iniciarTurnoProduccion()">Iniciar Registro de Turno</button>
+                <button onclick="irAtras()" class="action-button back-button">« Volver a Referencias</button>
+            </div>
+            <div id="screenActividades" class="screen hidden">
+                <h3 class="step-header">Registrando Actividades</h3>
+                <div id="actividades-layout">
+                    <div class="columna-actividad">
+                        <h4 class="sub-header">Registro de Producción</h4>
+                        <div id="registroPorRolloContainer" class="registro-tipo-container hidden"><label for="pesoRolloActual">Peso del Rollo (kg):</label><input type="number" id="pesoRolloActual" step="0.01" min="0"><button class="action-button" onclick="agregarRollo()">Añadir Rollo</button></div>
+                        <div id="registroPorPaqueteContainer" class="registro-tipo-container hidden"><label for="cantidadPaquetes">Cantidad de Paquetes:</label><input type="number" id="cantidadPaquetes" step="1" min="1"><button class="action-button" onclick="registrarPaquetes()">Registrar Paquetes</button></div>
+                        <div id="resultadoActividades" class="message-area"></div>
+                        <div id="resumenProduccion" style="margin-top:auto; padding-top: 10px; text-align:left;">
+                            <p><strong>Conforme Total:</strong> <span id="kpiCantidadConforme" style="font-weight:bold;">0.00</span> kg</p>
+                            <p id="resumenUnidades" class="hidden"><strong id="labelUnidades">Unidades:</strong> <span id="kpiCantidadUnidades" style="font-weight:bold;">0</span></p>
+                            <p id="resumenCantidadPaquetes" class="hidden"><strong>Paquetes:</strong> <span id="kpiCantidadPaquetesRegistrados" style="font-weight:bold;">0</span></p>
+                        </div>
+                    </div>
+                    <div class="columna-actividad">
+                        <h4 class="sub-header">Control de Paros</h4>
+                        <div id="controlParo"><button id="btnIniciarParo" onclick="iniciarParo()">Iniciar<br>Paro</button><button id="btnFinalizarParo" class="hidden" onclick="finalizarParoYMostrarSeleccionTipo()">Finalizar<br>Paro</button></div>
+                        <p>Tiempo de Paro: <span id="tiempoParoDisplay" style="font-weight:bold; font-size:1.2rem;">00:00:00</span></p>
+                        <div id="resultadoRegistroParo" class="message-area"></div>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+                    <button class="action-button" onclick="navegarAInspeccion()" style="background-color: #007bff;">Iniciar Inspección</button>
+                    <button class="action-button" onclick="finalizarTurnoPantalla()">Finalizar Turno</button>
+                </div>
+            </div>
+            <div id="screenSeleccionarTipoParo" class="screen hidden">
+                <h3 class="step-header">Detalles del Paro (1/2): Tipo</h3>
+                <p><strong>Duración:</strong> <span id="duracionParoConfirmar_Tipo" style="font-weight:bold;"></span></p>
+                <div class="screen-content">
+                    <div id="botonesTiposParo" class="selection-buttons"></div>
+                </div>
+                <button onclick="irA('screenActividades');" class="action-button back-button">« Volver (Cancelar Paro)</button>
+            </div>
+            <div id="screenSeleccionarDescripcionParo" class="screen hidden">
+                <h3 class="step-header">Detalles del Paro (2/2): Causa</h3>
+                <p><strong>Tipo:</strong> <span id="infoTipoParoSeleccionado_Desc" style="font-weight:bold;"></span> | <strong>Duración:</strong> <span id="duracionParoConfirmar_Desc" style="font-weight:bold;"></span></p>
+                 <div class="screen-content">
+                    <div id="botonesDescripcionesParo" class="selection-buttons"></div>
+                 </div>
+                <button id="btnGuardarParo" class="action-button" onclick="confirmarYGuardarParo()" disabled>Guardar Paro</button>
+                <button onclick="irAtras()" class="action-button back-button">« Volver a Tipos</button>
+            </div>
+            <div id="screenFinalizarKPI" class="screen hidden">
+                <h3 class="step-header">Finalizar Registro KPI</h3>
+                <div class="screen-content">
+                    <div class="form-group"><label for="retalProceso">Retal Proceso (kg):</label><input type="number" id="retalProceso" step="0.1" min="0"></div>
+                    <div class="form-group"><label for="retalMerma">Retal Merma (kg):</label><input type="number" id="retalMerma" step="0.1" min="0"></div>
+                    <div id="resultadoFinalizarTurno" class="message-area"></div>
+                </div>
+                <div class="button-container">
+                    <button class="action-button" onclick="confirmarFinalizarTurnoYMostrarResumen()">Confirmar y Ver Resumen</button>
+                    <button onclick="irA('screenActividades')" class="action-button back-button">« Volver</button>
+                </div>
+            </div>
+            <div id="screenResumenTurno" class="screen hidden">
+                <h3 class="step-header">Resumen del Turno Finalizado (ID: <span id="resumenKpiId"></span>)</h3>
+                <div class="screen-content">
+                    <div id="resumenContenido"></div>
+                </div>
+                <button class="action-button" onclick="finalizarYResetear()">Confirmar y Salir</button>
+            </div>
+            <div id="screenInspeccionCalidad" class="screen hidden">
+                <h3 class="step-header">Inspección de Calidad</h3>
+                <div id="formularioInspeccionDinamico" class="screen-content">
+                    <p>Cargando variables...</p>
+                </div>
+                <div id="resultadoInspeccion" class="message-area"></div>
+                <div class="button-container" style="margin-top: auto; padding-top: 5px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                         <button onclick="irA('screenActividades')" class="action-button back-button" style="margin-top:0; padding: 10px; font-size: 1.1em;">« Volver</button>
+                         <button class="action-button" onclick="guardarInspeccionCalidad()" style="background-color: #28a745; margin-top:0; padding: 10px; font-size: 1.1em;">Guardar</button>
+                    </div>
+                </div>
+            </div>
+            <div id="screenAdminDashboard" class="screen hidden">
+                <h2>Dashboard Administrador</h2>
+                <button onclick="cerrarSesion()" class="logout-button" style="position: absolute; top: 10px; right: 10px; font-size:1rem; padding: 6px 10px;">Salir</button>
+                <button class="action-button" style="width: auto; padding: 8px 12px; margin: 0 5px 10px; background-color: #17a2b8;" onclick="cargarEstadoDeTodasLasMaquinas()">Actualizar</button>
+                <div class="screen-content" style="width:100%; overflow-x: auto;"><table id="tablaEstadoMaquinas">
+                    <thead><tr><th>ID</th><th>Máquina</th><th>Proceso</th><th>Estado</th><th>Operario</th><th>Ref.</th><th>Inicio</th><th>KPI</th><th>Acción</th></tr></thead>
+                    <tbody id="tbodyEstadoMaquinas"></tbody>
+                </table></div>
+                <div id="mensajeEstadoMaquinas" class="message-area"></div>
+            </div>
+        </div>
+    </main>
+    <footer class="app-footer hidden">
+        <img src="images/logo_agrobol.jpg" alt="Logo AGROBOL S.A.S BIC" class="app-logo-footer">
+    </footer>
+
+<script>
+    const apiUrlBase = 'http://192.168.1.9:8000'; 
+    let accessToken = null;
+    let infoUsuarioGlobal = { sub: '-', rol: '-', nombre_usuario: 'Usuario' };
+    let turnoSel = { id: null, nombre: "-", horaInicio: null, horaFin: null, item: null };
+    let procesoSel = { id: null, nombre: "-", item: null }; 
+    let maquinaSel = { id: null, nombre: "-", item: null };
+    let tipoProductoSel = { nombre: null, item: null };
+    let lineaProductoSel = { nombre: null, item: null };
+    let tratamientoSel = { nombre: null, item: null };
+    let referenciaSel = { id: null, nombre: "-", item: null }; 
+    let idRegistroKPIActivoGlobal = null;
+    let kpiDataActualGlobal = null; 
+    let kpiCantidadPaquetesRegistrados = 0;
+    const procesosPorRollo = ['01', '02', '05']; 
+    const procesosPorPaquetes = ['03', '04', '06']; 
+    const rolAdmin = "Administrador"; 
+    
+    const tiposProductoPorProceso = {
+        '01': ['Bolsa Cortada', 'Camiseta', 'Rollo'],
+        '02': ['Bolsa Cortada', 'Rollo'],
+        '03': ['Bolsa Cortada'],
+        '04': ['Rollo'],
+        '06': ['Camiseta']
+    };
+
+    let timerIntervalParo = null;
+    let tiempoInicioParoTimestamp = null;
+    let duracionParoActualSegundos = 0;
+    let tipoParoSel = { id: null, nombre: "-" };
+    let descripcionParoSel = { id: null, nombre: "-" };
+    const todasLasPantallas = ['screenLogin', 'screenTurno', 'screenProceso', 'screenMaquina', 'screenTipoProducto', 'screenLineaProducto', 'screenTratamiento', 'screenReferencia', 'screenIniciarKPI', 'screenActividades', 'screenSeleccionarTipoParo', 'screenSeleccionarDescripcionParo','screenFinalizarKPI', 'screenResumenTurno', 'screenAdminDashboard', 'screenInspeccionCalidad'];
+    let pantallaActual = 'screenLogin';
+    let historialNavegacion = ['screenLogin'];
+
+    const headerElement = document.querySelector('.app-header');
+    const footerElement = document.querySelector('.app-footer');
+    const mainElement = document.querySelector('main');
+    
+    function clearAllMessages() {
+        document.querySelectorAll('.message-area').forEach(area => {
+            area.innerHTML = '';
+            area.className = 'message-area';
+        });
+    }
+
+    function getErrorMessage(errorData) {
+        if (!errorData) return 'Error desconocido.';
+        if (typeof errorData.detail === 'string') return errorData.detail;
+        if (Array.isArray(errorData.detail)) return errorData.detail.map(e => `${e.loc.join('→')}: ${e.msg}`).join('; ');
+        return JSON.stringify(errorData);
+    }
+
+    function irA(idPantallaDeseada) {
+        clearAllMessages();
+        
+        if (pantallaActual !== idPantallaDeseada) {
+            historialNavegacion.push(idPantallaDeseada);
+        }
+
+        const mapaTextosVolver = {
+            'screenProceso': '« Volver a Turnos',
+            'screenMaquina': '« Volver a Procesos',
+            'screenTipoProducto': '« Volver a Máquinas',
+            'screenLineaProducto': `« Volver a ${historialNavegacion[historialNavegacion.length - 2] === 'screenTipoProducto' ? 'Tipo de Producto' : 'Máquinas'}`,
+            'screenTratamiento': '« Volver a Línea de Producto',
+            'screenReferencia': '« Volver a Tratamiento',
+            'screenIniciarKPI': '« Volver a Referencias'
+        };
+
+        todasLasPantallas.forEach(id => {
+            const pantalla = document.getElementById(id);
+            if (pantalla) {
+                const esPantallaActiva = (id === idPantallaDeseada);
+                pantalla.classList.toggle('hidden', !esPantallaActiva);
+
+                if (esPantallaActiva) {
+                    const botonVolver = pantalla.querySelector('.back-button');
+                    if (botonVolver) {
+                        botonVolver.onclick = irAtras;
+                        if (mapaTextosVolver[id]) {
+                            botonVolver.textContent = mapaTextosVolver[id];
+                        }
+                    }
+                }
+            }
+        });
+        
+        pantallaActual = idPantallaDeseada;
+
+        const esLogin = idPantallaDeseada === 'screenLogin';
+        headerElement.classList.toggle('hidden', esLogin);
+        footerElement.classList.toggle('hidden', esLogin);
+        mainElement.style.alignItems = esLogin ? 'center' : 'flex-start';
+
+        if (!esLogin) {
+            actualizarHeaderInfo();
+        }
+    }
+    
+    function irAtras() {
+        if (historialNavegacion.length > 1) {
+            historialNavegacion.pop();
+        }
+        const pantallaAnterior = historialNavegacion[historialNavegacion.length - 1];
+        
+        const pantallaActualTemp = historialNavegacion.pop();
+        irA(pantallaAnterior);
+        historialNavegacion.push(pantallaActualTemp);
+    }
+
+    function toggleInfoBar() {
+        const infoBar = document.getElementById('infoBarContainer');
+        infoBar.classList.toggle('expanded');
+        const btn = infoBar.querySelector('.info-bar-toggle-btn');
+        btn.textContent = infoBar.classList.contains('expanded') ? 'Ocultar' : 'Detalles';
+    }
+
+    function actualizarHeaderInfo() {
+        if (!infoUsuarioGlobal) return;
+        document.getElementById('infoUsuario_Header').textContent = `${infoUsuarioGlobal.nombre_usuario || infoUsuarioGlobal.sub}`;
+        document.getElementById('infoTurno_Header').textContent = turnoSel.nombre || '-';
+        document.getElementById('infoProceso_Header').textContent = procesoSel.nombre || '-';
+        document.getElementById('infoMaquina_Header').textContent = maquinaSel.nombre || '-';
+        document.getElementById('infoReferencia_Header').textContent = referenciaSel.nombre || '-';
+        document.getElementById('idRegistro_Header').textContent = idRegistroKPIActivoGlobal || '-';
+    }
+
+    async function recuperarEstadoActivo() {
+        if (!accessToken || (infoUsuarioGlobal && infoUsuarioGlobal.rol.toLowerCase() === rolAdmin.toLowerCase())) {
+            return false;
+        }
+
+        try {
+            const response = await fetch(`${apiUrlBase}/produccion/turno_activo_por_usuario/${infoUsuarioGlobal.sub}`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+
+            if (response.ok) {
+                const maquinaActiva = await response.json();
+                
+                const kpiResponse = await fetch(`${apiUrlBase}/produccion/registros_kpi/${maquinaActiva.ID_Registro_KPI}`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+
+                if (!kpiResponse.ok) return false;
+                
+                const kpiData = await kpiResponse.json();
+                
+                idRegistroKPIActivoGlobal = kpiData.ID_Registro;
+                kpiDataActualGlobal = kpiData;
+                procesoSel = { id: kpiData.ID_Proceso, nombre: maquinaActiva.Proceso };
+                maquinaSel = { id: kpiData.ID_Maquina, nombre: maquinaActiva.Maquina };
+                referenciaSel = { id: kpiData.Referencia, nombre: kpiData.Referencia };
+                turnoSel.nombre = kpiData.Turno; 
+                
+                actualizarHeaderInfo();
+                mostrarControlesPorProceso();
+                actualizarResumenKPI();
+                
+                irA('screenActividades');
+                return true;
+
+            } else {
+                return false;
+            }
+        } catch (error) {
+            console.error("Error en recuperarEstadoActivo:", error);
+            return false;
+        }
+    }
+
+    async function realizarLogin() {
+        clearAllMessages();
+        const idUsuarioInput = document.getElementById('id_usuario');
+        const contrasenaInput = document.getElementById('contrasena');
+        const resultadoLoginDiv = document.getElementById('resultadoLogin');
+        const idUsuario = idUsuarioInput.value;
+        const contrasena = contrasenaInput.value;
+        resultadoLoginDiv.innerHTML = 'Iniciando sesión...';
+        if (!idUsuario || !contrasena) { resultadoLoginDiv.textContent = 'Ingrese ID y Contraseña.'; resultadoLoginDiv.className = 'message-area error'; return; }
+        const formData = new URLSearchParams();
+        formData.append('username', idUsuario); formData.append('password', contrasena);
+        try {
+            const response = await fetch(`${apiUrlBase}/token`, { method: 'POST', body: formData });
+            const data = await response.json();
+            if (response.ok) {
+                accessToken = data.access_token;
+                const payloadBase64 = accessToken.split('.')[1];
+                infoUsuarioGlobal = JSON.parse(atob(payloadBase64));
+                resultadoLoginDiv.textContent = 'Login Exitoso! Verificando turnos activos...';
+                resultadoLoginDiv.className = 'message-area exito';
+                
+                setTimeout(async () => {
+                    idUsuarioInput.value = ''; contrasenaInput.value = '';
+                    
+                    // Intentamos recuperar un turno activo
+                    const estadoRecuperado = await recuperarEstadoActivo();
+                    
+                    // Si NO se recuperó un estado, seguimos el flujo normal
+                    if (!estadoRecuperado) {
+                        if (infoUsuarioGlobal.rol && infoUsuarioGlobal.rol.toLowerCase() === rolAdmin.toLowerCase()) {
+                            irA('screenAdminDashboard');
+                            cargarEstadoDeTodasLasMaquinas();
+                        } else {
+                            irA('screenTurno'); 
+                            cargarTurnosComoBotones();
+                        }
+                    }
+                    // Si SÍ se recuperó un estado, la función ya nos llevó a la pantalla de actividades.
+                }, 1000);
+            } else { 
+                accessToken = null; infoUsuarioGlobal = { sub: '-', rol: '-', nombre_usuario: 'Usuario' };
+                resultadoLoginDiv.textContent = getErrorMessage(data);
+                resultadoLoginDiv.className = 'message-area error';
+            }
+        } catch (error) { 
+            accessToken = null; infoUsuarioGlobal = { sub: '-', rol: '-', nombre_usuario: 'Usuario' };
+            resultadoLoginDiv.textContent = 'Error de conexión con el servidor.';
+            resultadoLoginDiv.className = 'message-area error';
+        }
+    }
+    
+    function fetchDataAndCreateButtons(endpoint, divBotonesId, seleccionHandler, textoBotonFormatter) {
+        return new Promise(async (resolve, reject) => {
+            const divBotones = document.getElementById(divBotonesId);
+            divBotones.innerHTML = `<p>Cargando...</p>`;
+            if (!accessToken) {
+                divBotones.innerHTML = '<p class="error">Error: No autenticado</p>';
+                return reject('No autenticado');
+            }
+            try {
+                const response = await fetch(`${apiUrlBase}${endpoint}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                const data = await response.json();
+                divBotones.innerHTML = '';
+                if (response.ok) {
+                    if (data.data && data.data.length > 0) {
+                        data.data.forEach(item => {
+                            const button = document.createElement('button');
+                            button.textContent = textoBotonFormatter(item);
+                            button.onclick = () => seleccionHandler(item, button);
+                            divBotones.appendChild(button);
+                        });
+                        resolve(data.data);
+                    } else {
+                        divBotones.innerHTML = `<p>${(data.mensaje || 'No se encontraron datos.')}</p>`;
+                        resolve([]);
+                    }
+                } else {
+                    divBotones.innerHTML = `<p class="error">${getErrorMessage(data)}</p>`;
+                    reject(getErrorMessage(data));
+                }
+            } catch (error) {
+                divBotones.innerHTML = '<p class="error">Error de red.</p>';
+                reject('Error de red.');
+            }
+        });
+    }
+
+    // ===== CORRECCIÓN LÓGICA SÁBADOS =====
+    async function cargarTurnosComoBotones() {
+        const turnosNormalesDiv = document.getElementById('turnos-normales');
+        const turnosEspecialesDiv = document.getElementById('turnos-especiales');
+        
+        turnosNormalesDiv.innerHTML = '<h4>Turnos Normales</h4>';
+        turnosEspecialesDiv.innerHTML = '<h4>Turnos Especiales</h4>';
+        turnosNormalesDiv.style.display = 'flex';
+        turnosEspecialesDiv.style.display = 'flex';
+
+        if (!accessToken) {
+            turnosNormalesDiv.innerHTML += '<p class="error">Error: No autenticado</p>';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${apiUrlBase}/maestros/turnos/`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const data = await response.json();
+
+            if (response.ok && data.data && data.data.length > 0) {
+                
+                // LÍNEA MODIFICADA PARA PRUEBAS
+                const esSabado = new Date().getDay() === 6;
+                
+                let turnosAMostrar;
+
+                if (esSabado) {
+                    console.log("MODO PRUEBA: Forzado a Sábado, mostrando solo turnos de Sábado.");
+                    turnosAMostrar = data.data.filter(turno => turno.Nombre_Turno.toLowerCase().includes('sábado'));
+                } else {
+                    console.log("MODO NORMAL: No es Sábado, mostrando turnos regulares.");
+                    turnosAMostrar = data.data.filter(turno => !turno.Nombre_Turno.toLowerCase().includes('sábado'));
+                }
+
+                if (turnosAMostrar.length === 0) {
+                    turnosNormalesDiv.innerHTML = '<p>No hay turnos definidos para hoy.</p>';
+                    turnosEspecialesDiv.style.display = 'none';
+                    return;
+                }
+                
+                let botonesNormalesCount = 0;
+                let botonesEspecialesCount = 0;
+
+                turnosAMostrar.forEach(item => {
+                    const button = document.createElement('button');
+                    button.textContent = `${item.Nombre_Turno}`;
+                    button.onclick = () => seleccionarTurno(item, button);
+
+                    const nombreTurnoLower = item.Nombre_Turno.toLowerCase();
+                    
+                    // Lógica simplificada: los sábados todos son "especiales", en otros días, solo los marcados.
+                    if (esSabado || nombreTurnoLower.includes('lean') || nombreTurnoLower.includes('12 horas')) {
+                        turnosEspecialesDiv.appendChild(button);
+                        botonesEspecialesCount++;
+                    } else {
+                        turnosNormalesDiv.appendChild(button);
+                        botonesNormalesCount++;
+                    }
+                });
+                
+                // Ocultar columnas si quedaron vacías
+                if (botonesNormalesCount === 0) {
+                    turnosNormalesDiv.style.display = 'none';
+                }
+                if (botonesEspecialesCount === 0) {
+                    turnosEspecialesDiv.style.display = 'none';
+                }
+
+            } else {
+                turnosNormalesDiv.innerHTML = `<p>${(data.mensaje || 'No se encontraron turnos.')}</p>`;
+            }
+        } catch (error) {
+            turnosNormalesDiv.innerHTML = `<p class="error">Error de red.</p>`;
+        }
+    }
+    
+    function seleccionarTurno(turnoSeleccionadoObj, botonClickeado) { historialNavegacion = ['screenLogin', 'screenTurno']; turnoSel = { id: turnoSeleccionadoObj.ID_Turno, nombre: turnoSeleccionadoObj.Nombre_Turno, horaInicio: turnoSeleccionadoObj.Hora_Inicio, horaFin: turnoSeleccionadoObj.Hora_Fin, item: turnoSeleccionadoObj }; resaltarBoton(botonClickeado, 'turnos-layout'); irA('screenProceso'); cargarProcesosComoBotones(); }
+    async function cargarProcesosComoBotones() { await fetchDataAndCreateButtons('/maestros/procesos/', 'botonesProcesos', (item, btn) => seleccionarProceso(item, btn), (item) => `${item.Proceso}`); }
+    function seleccionarProceso(procesoItem, botonClickeado) { procesoSel = { id: procesoItem.ID_Proceso, nombre: procesoItem.Proceso, item: procesoItem }; resaltarBoton(botonClickeado, 'botonesProcesos'); irA('screenMaquina'); cargarMaquinasComoBotones(procesoItem.ID_Proceso); }
+    async function cargarMaquinasComoBotones(idProceso) { await fetchDataAndCreateButtons(`/maestros/maquinas/?id_proceso=${idProceso}`, 'botonesMaquinas', (item, btn) => seleccionarMaquina(item, btn), (item) => `${item.Maquina}`); }
+    
+    function seleccionarMaquina(maquinaItem, botonClickeado) { 
+        maquinaSel = { id: maquinaItem.ID_Maquina, nombre: maquinaItem.Maquina, item: maquinaItem }; 
+        resaltarBoton(botonClickeado, 'botonesMaquinas'); 
+        
+        const tiposDisponibles = tiposProductoPorProceso[procesoSel.id] || [];
+
+        if (tiposDisponibles.length > 1) {
+            irA('screenTipoProducto'); 
+            const divBotones = document.getElementById('botonesTiposProducto');
+            divBotones.innerHTML = '';
+            tiposDisponibles.forEach(tipoNombre => {
+                const button = document.createElement('button');
+                button.textContent = tipoNombre;
+                const tipoItem = { Tipo_Producto: tipoNombre }; 
+                button.onclick = () => seleccionarTipoProducto(tipoItem, button);
+                divBotones.appendChild(button);
+            });
+        } else if (tiposDisponibles.length === 1) {
+            const unicoTipo = tiposDisponibles[0];
+            tipoProductoSel = { nombre: unicoTipo, item: { Tipo_Producto: unicoTipo } };
+            irA('screenLineaProducto');
+            cargarLineasProductoComoBotones(tipoProductoSel.nombre);
+        } else {
+            tipoProductoSel = { nombre: null, item: null };
+            irA('screenLineaProducto');
+            cargarLineasProductoComoBotones(null);
+        }
+    }
+
+    function seleccionarTipoProducto(tipoProductoItem, botonClickeado) { 
+        tipoProductoSel = { nombre: tipoProductoItem.Tipo_Producto, item: tipoProductoItem }; 
+        resaltarBoton(botonClickeado, 'botonesTiposProducto'); 
+        irA('screenLineaProducto'); 
+        cargarLineasProductoComoBotones(tipoProductoSel.nombre);
+    }
+
+    async function cargarLineasProductoComoBotones(tipoProducto) { 
+        const params = new URLSearchParams();
+        if (tipoProducto) {
+            params.append('tipo_producto', tipoProducto);
+        }
+        const endpoint = `/maestros/lineas_producto/?${params.toString()}`;
+        await fetchDataAndCreateButtons(endpoint, 'botonesLineasProducto', (item, btn) => seleccionarLineaProducto(item, btn), (item) => item.Linea_Producto); 
+    }
+
+    function seleccionarLineaProducto(lineaProductoItem, botonClickeado) { lineaProductoSel = { nombre: lineaProductoItem.Linea_Producto, item: lineaProductoItem }; resaltarBoton(botonClickeado, 'botonesLineasProducto'); irA('screenTratamiento'); cargarBotonesTratamiento(); }
+    function cargarBotonesTratamiento() {
+        const divBotones = document.getElementById('botonesTratamiento');
+        divBotones.innerHTML = '';
+        ['Tratado', 'Sin Tratar'].forEach(trat => {
+            const button = document.createElement('button');
+            button.textContent = trat;
+            button.onclick = () => seleccionarTratamiento(trat, button);
+            divBotones.appendChild(button);
+        });
+    }
+
+    function seleccionarTratamiento(tratamientoSeleccionado, botonClickeado) { 
+        tratamientoSel = { nombre: tratamientoSeleccionado, item: tratamientoSeleccionado }; 
+        resaltarBoton(botonClickeado, 'botonesTratamiento'); 
+        irA('screenReferencia'); 
+        cargarReferenciasComoBotones(tipoProductoSel.nombre, lineaProductoSel.nombre, tratamientoSel.nombre); 
+    }
+
+    async function cargarReferenciasComoBotones(tipo, linea, tratamiento) { 
+        let params = new URLSearchParams();
+        if (tipo) params.append('tipo_producto', tipo);
+        if (linea) params.append('linea_producto', linea);
+        if (tratamiento) params.append('tratamiento', tratamiento);
+        
+        const endpoint = `/maestros/productos/?${params.toString()}`;
+        await fetchDataAndCreateButtons(endpoint, 'botonesReferencias', (item, btn) => seleccionarReferencia(item, btn), (item) => `${item.Referencia}`); 
+    }
+
+    function seleccionarReferencia(productoItem, botonClickeado) { referenciaSel = { id: productoItem.Referencia, nombre: `${productoItem.Referencia}`, item: productoItem }; resaltarBoton(botonClickeado, 'botonesReferencias'); document.getElementById('fechaTurno').valueAsDate = new Date(); document.getElementById('horaInicioTurnoDisplay').value = turnoSel.horaInicio; irA('screenIniciarKPI'); }
+    
+    function mostrarControlesPorProceso() {
+        const esProcesoRollo = procesosPorRollo.includes(procesoSel.id);
+        const esProcesoPaquete = procesosPorPaquetes.includes(procesoSel.id);
+
+        // Muestra u oculta el campo de entrada para "Peso del Rollo"
+        document.getElementById('registroPorRolloContainer').classList.toggle('hidden', !esProcesoRollo);
+        
+        // Muestra u oculta el campo de entrada para "Cantidad de Paquetes"
+        document.getElementById('registroPorPaqueteContainer').classList.toggle('hidden', !esProcesoPaquete);
+
+        // Muestra u oculta la línea de resumen de unidades (si es rollo O si es paquete)
+        document.getElementById('resumenUnidades').classList.toggle('hidden', !esProcesoRollo && !esProcesoPaquete);
+        
+        // Selecciona la etiqueta de texto (el <strong>) para cambiar su contenido
+        const labelUnidades = document.getElementById('labelUnidades');
+        
+        // Cambia dinámicamente el texto de la etiqueta según el proceso
+        if (esProcesoRollo) {
+            labelUnidades.textContent = 'Rollos:';
+        } else if (esProcesoPaquete) {
+            labelUnidades.textContent = 'Paquetes:';
+        }
+    }
+    
+    async function iniciarTurnoProduccion() {
+        if (timerIntervalParo) clearInterval(timerIntervalParo);
+        timerIntervalParo = null;
+        tiempoInicioParoTimestamp = null;
+        duracionParoActualSegundos = 0;
+        document.getElementById('tiempoParoDisplay').textContent = '00:00:00';
+        document.getElementById('btnIniciarParo').classList.remove('hidden');
+        document.getElementById('btnFinalizarParo').classList.add('hidden');
+        
+        clearAllMessages();
+        const resultadoDiv = document.getElementById('resultadoInicioTurno');
+        resultadoDiv.innerHTML = 'Iniciando turno...';
+        const datosParaIniciarKPI = { Fecha: document.getElementById('fechaTurno').value, Referencia: referenciaSel.id, ID_Maquina: maquinaSel.id, ID_Proceso: procesoSel.id, ID_Turno: turnoSel.id, Numero_Capas: parseInt(document.getElementById('numeroCapas').value) || 1 };
+        try {
+            const response = await fetch(`${apiUrlBase}/produccion/registros_kpi/iniciar`, { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify(datosParaIniciarKPI) });
+            const data = await response.json();
+            if (response.ok) {
+                idRegistroKPIActivoGlobal = data.ID_Registro; kpiDataActualGlobal = data; 
+                actualizarResumenKPI(); mostrarControlesPorProceso();
+                resultadoDiv.textContent = `Turno iniciado! ID KPI: ${idRegistroKPIActivoGlobal}`; resultadoDiv.className = 'message-area exito';
+                setTimeout(() => { irA('screenActividades'); }, 1500);
+            } else { resultadoDiv.textContent = getErrorMessage(data); resultadoDiv.className = 'message-area error'; }
+        } catch (error) { resultadoDiv.textContent = 'Error de red.'; resultadoDiv.className = 'message-area error'; }
+    }
+
+    async function agregarRollo() {
+        clearAllMessages();
+        const pesoRolloInput = document.getElementById('pesoRolloActual');
+        const resultadoActividadesDiv = document.getElementById('resultadoActividades');
+        const pesoRollo = parseFloat(pesoRolloInput.value);
+        if (isNaN(pesoRollo) || pesoRollo <= 0) {
+            resultadoActividadesDiv.textContent = 'Ingrese un peso válido.';
+            resultadoActividadesDiv.className = 'message-area error';
+            return;
+        }
+        try {
+            resultadoActividadesDiv.innerHTML = 'Añadiendo rollo...';
+            resultadoActividadesDiv.className = 'message-area';
+            const response = await fetch(`${apiUrlBase}/produccion/registros_kpi/${idRegistroKPIActivoGlobal}/agregar_rollo`, { 
+                method: 'PUT', 
+                headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ peso_rollo: pesoRollo }) 
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(getErrorMessage(errorData));
+            }
+            const data = await response.json(); 
+            kpiDataActualGlobal = data;
+            pesoRolloInput.value = '';
+            resultadoActividadesDiv.textContent = `Rollo añadido!`; 
+            resultadoActividadesDiv.className = 'message-area exito';
+            actualizarResumenKPI();
+        } catch (error) { 
+            console.error("Error detallado en agregarRollo:", error);
+            resultadoActividadesDiv.textContent = `Error: ${error.message}`; 
+            resultadoActividadesDiv.className = 'message-area error'; 
+        }
+    }
+    
+    async function registrarPaquetes() {
+        clearAllMessages();
+        const cantidadPaquetesInput = document.getElementById('cantidadPaquetes');
+        const resultadoActividadesDiv = document.getElementById('resultadoActividades');
+        const cantidadPaquetes = parseInt(cantidadPaquetesInput.value);
+        if (isNaN(cantidadPaquetes) || cantidadPaquetes <= 0) { resultadoActividadesDiv.textContent = 'Ingrese una cantidad válida.'; resultadoActividadesDiv.className = 'message-area error'; return; }
+        try {
+            const response = await fetch(`${apiUrlBase}/produccion/registros_kpi/${idRegistroKPIActivoGlobal}/registrar_paquetes`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ cantidad_paquetes: cantidadPaquetes }) });
+            const data = await response.json(); 
+            if (response.ok) {
+                kpiDataActualGlobal = data; cantidadPaquetesInput.value = ''; kpiCantidadPaquetesRegistrados += cantidadPaquetes;
+                resultadoActividadesDiv.textContent = `${cantidadPaquetes} paquetes registrados!`; resultadoActividadesDiv.className = 'message-area exito';
+                actualizarResumenKPI();
+            } else { resultadoActividadesDiv.textContent = getErrorMessage(data); resultadoDiv.className = 'message-area error'; }
+        } catch (error) { resultadoActividadesDiv.textContent = 'Error de red.'; resultadoDiv.className = 'message-area error'; }
+    }
+
+    function actualizarResumenKPI() {
+        if (!kpiDataActualGlobal) return;
+        document.getElementById('kpiCantidadConforme').textContent = (parseFloat(kpiDataActualGlobal.Cantidad_Conforme) || 0.0).toFixed(2);
+        document.getElementById('kpiCantidadUnidades').textContent = parseInt(kpiDataActualGlobal.Cantidad_Unidades) || 0;
+    }
+    
+    function finalizarTurnoPantalla() {
+        if (tiempoInicioParoTimestamp) {
+            alert("¡Atención! Hay un paro activo. Debe finalizar el paro antes de poder finalizar el turno.");
+            return;
+        }
+        irA('screenFinalizarKPI');
+    }
+    
+    async function confirmarFinalizarTurnoYMostrarResumen() {
+        clearAllMessages();
+        const resultadoDiv = document.getElementById('resultadoFinalizarTurno');
+        resultadoDiv.innerHTML = 'Finalizando turno...';
+        const datosFinales = { Retal_Proceso: parseFloat(document.getElementById('retalProceso').value) || 0.0, Retal_Merma: parseFloat(document.getElementById('retalMerma').value) || 0.0 };
+        try {
+            const response = await fetch(`${apiUrlBase}/produccion/registros_kpi/${idRegistroKPIActivoGlobal}/finalizar`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify(datosFinales) });
+            const data = await response.json();
+            if (response.ok) {
+                kpiDataActualGlobal = data; 
+                resultadoDiv.textContent = `Turno finalizado!`; resultadoDiv.className = 'message-area exito';
+                setTimeout(() => { poblarYMostrarResumenTurno(kpiDataActualGlobal); }, 1500); 
+            } else { resultadoDiv.textContent = getErrorMessage(data); resultadoDiv.className = 'message-area error'; }
+        } catch (error) { resultadoDiv.textContent = 'Error de red.'; resultadoDiv.className = 'message-area error'; }
+    }
+    
+    function resaltarBoton(botonClickeado, idContenedorBotones) { 
+        const container = document.getElementById(idContenedorBotones);
+        if (container) { container.querySelectorAll('button').forEach(btn => btn.classList.remove('selected')); }
+        if (botonClickeado) botonClickeado.classList.add('selected');
+    }
+    
+    function iniciarParo() {
+        clearAllMessages(); if (tiempoInicioParoTimestamp) { return; }
+        tiempoInicioParoTimestamp = new Date();
+        if (timerIntervalParo) clearInterval(timerIntervalParo);
+        timerIntervalParo = setInterval(() => { duracionParoActualSegundos = Math.floor((new Date() - tiempoInicioParoTimestamp) / 1000); document.getElementById('tiempoParoDisplay').textContent = formatTime(duracionParoActualSegundos); }, 1000);
+        document.getElementById('btnIniciarParo').classList.add('hidden'); document.getElementById('btnFinalizarParo').classList.remove('hidden');
+    }
+
+    function finalizarParoYMostrarSeleccionTipo() {
+        if (!tiempoInicioParoTimestamp) return;
+        clearInterval(timerIntervalParo); timerIntervalParo = null;
+        if (duracionParoActualSegundos <= 0) duracionParoActualSegundos = 1;
+        document.getElementById('duracionParoConfirmar_Tipo').textContent = formatTime(duracionParoActualSegundos);
+        irA('screenSeleccionarTipoParo'); cargarTiposParoComoBotones();
+    }
+    
+    async function cargarTiposParoComoBotones() { await fetchDataAndCreateButtons('/maestros/tipos_paro/', 'botonesTiposParo', (item, btn) => seleccionarTipoParo(item, btn), (item) => `${item.Tipo_De_Paro}`); }
+    function seleccionarTipoParo(tipoParoObj, botonClickeado) {
+        tipoParoSel = { id: tipoParoObj.ID_TP, nombre: tipoParoObj.Tipo_De_Paro }; resaltarBoton(botonClickeado, 'botonesTiposParo');
+        document.getElementById('btnGuardarParo').disabled = true;
+        document.getElementById('infoTipoParoSeleccionado_Desc').textContent = tipoParoSel.nombre;
+        document.getElementById('duracionParoConfirmar_Desc').textContent = formatTime(duracionParoActualSegundos);
+        irA('screenSeleccionarDescripcionParo'); cargarDescripcionesParoComoBotones(procesoSel.id, tipoParoSel.id);
+    }
+    async function cargarDescripcionesParoComoBotones(idProcesoGlobal, idTipoParoSeleccionado) { await fetchDataAndCreateButtons(`/maestros/descripciones_paro/?id_proceso=${idProcesoGlobal}&id_tipo_paro=${idTipoParoSeleccionado}`, 'botonesDescripcionesParo', (item, btn) => seleccionarDescripcionParo(item, btn), (item) => `${item.Descripcion_Paro}`); }
+    function seleccionarDescripcionParo(descParoObj, botonClickeado) { descripcionParoSel = { id: descParoObj.ID_Paro, nombre: descParoObj.Descripcion_Paro }; resaltarBoton(botonClickeado, 'botonesDescripcionesParo'); document.getElementById('btnGuardarParo').disabled = false; }
+
+    async function confirmarYGuardarParo() {
+        clearAllMessages();
+        const resultadoDiv = document.getElementById('resultadoRegistroParo');
+        resultadoDiv.innerHTML = 'Guardando paro...';
+        const paroData = { ID_Registro_KPI: idRegistroKPIActivoGlobal, Fecha: kpiDataActualGlobal.Fecha, Referencia: kpiDataActualGlobal.Referencia, ID_Maquina: maquinaSel.id, ID_Proceso: kpiDataActualGlobal.ID_Proceso, Turno: kpiDataActualGlobal.Turno, ID_TP: tipoParoSel.id, ID_Paro: descripcionParoSel.id, Tiempo_Paro: duracionParoActualSegundos / 60 };
+        try {
+            const response = await fetch(`${apiUrlBase}/paros/maquina_con_kpi/`, { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify(paroData) });
+            const data = await response.json();
+            if (response.ok) {
+                resultadoDiv.textContent = `Paro guardado.`; resultadoDiv.className = 'message-area exito';
+                tiempoInicioParoTimestamp = null; duracionParoActualSegundos = 0;
+                document.getElementById('tiempoParoDisplay').textContent = '00:00:00';
+                document.getElementById('btnIniciarParo').classList.remove('hidden'); document.getElementById('btnFinalizarParo').classList.add('hidden');
+                setTimeout(() => { irA('screenActividades'); }, 1500);
+            } else { irA('screenSeleccionarDescripcionParo'); document.getElementById('botonesDescripcionesParo').innerHTML = `<p class="error">${getErrorMessage(data)}</p>`; }
+        } catch (error) { irA('screenSeleccionarDescripcionParo'); document.getElementById('botonesDescripcionesParo').innerHTML = `<p class="error">Error de red.</p>`;}
+    }
+    
+    function formatTime(totalSeconds) { const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0'); const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0'); const s = Math.floor(totalSeconds % 60).toString().padStart(2, '0'); return `${h}:${m}:${s}`; }
+    
+    function poblarYMostrarResumenTurno(data) {
+        if (!data) return;
+        document.getElementById('resumenKpiId').textContent = data.ID_Registro || '-';
+        const container = document.getElementById('resumenContenido');
+        const totalParos = [data.Paros_Alistamiento, data.Paros_Programados, data.Paros_Calidad, data.Paros_Averias, data.Paros_Organizacion].filter(v => v != null).reduce((acc, v) => acc + parseFloat(v), 0);
+        
+        container.innerHTML = `
+            <div class="resumen-columna">
+                <h4>Detalles Turno</h4>
+                <p><strong>Fecha:</strong> ${data.Fecha}</p>
+                <p><strong>Operario:</strong> ${infoUsuarioGlobal.nombre_usuario}</p>
+                <p><strong>Proceso:</strong> ${procesoSel.nombre}</p>
+                <p><strong>Máquina:</strong> ${maquinaSel.nombre}</p>
+                <p><strong>Referencia:</strong> ${referenciaSel.nombre}</p>
+            </div>
+            <div class="resumen-columna">
+                <h4>Tiempos y Paros</h4>
+                <p><strong>Hora Inicio:</strong> ${data.Hora_Inicio}</p>
+                <p><strong>Hora Fin:</strong> ${data.Hora_Finalización}</p>
+                <p><strong>Total Paros:</strong> ${totalParos.toFixed(2)} min</p>
+            </div>
+            <div class="resumen-columna">
+                <h4>Producción (kg)</h4>
+                <p><strong>Conforme:</strong> ${parseFloat(data.Cantidad_Conforme).toFixed(2)}</p>
+                <p><strong>Retal Proceso:</strong> ${parseFloat(data.Retal_Proceso).toFixed(2)}</p>
+                <p><strong>Retal Merma:</strong> ${parseFloat(data.Retal_Merma).toFixed(2)}</p>
+            </div>
+            <div class="resumen-columna resumen-observaciones">
+                <h4>Observaciones</h4>
+                <p style="white-space: pre-wrap; word-break: break-word;">${data.Observaciones || 'Sin observaciones.'}</p>
+            </div>
+        `;
+        irA('screenResumenTurno');
+    }
+    
+    function finalizarYResetear() { cerrarSesion(); }
+
+    function cerrarSesion() {
+        accessToken = null; infoUsuarioGlobal = {sub:'-', rol:'-', nombre_usuario: 'Usuario'};
+        turnoSel = { id: null, nombre: "-", horaInicio:null, horaFin:null, item: null };
+        procesoSel = { id: null, nombre: "-", item: null }; maquinaSel = { id: null, nombre: "-", item: null };
+        tipoProductoSel = { nombre: null, item: null };
+        lineaProductoSel = { nombre: null, item: null }; tratamientoSel = { nombre: null, item: null };
+        referenciaSel = { id: null, nombre: "-", item: null }; 
+        idRegistroKPIActivoGlobal = null; kpiDataActualGlobal = null; kpiCantidadPaquetesRegistrados = 0;
+        tipoParoSel = { id: null, nombre: "-" }; descripcionParoSel = { id: null, nombre: "-" };
+        historialNavegacion = ['screenLogin'];
+
+        if (timerIntervalParo) clearInterval(timerIntervalParo);
+        timerIntervalParo = null;
+        tiempoInicioParoTimestamp = null;
+        duracionParoActualSegundos = 0;
+        document.getElementById('tiempoParoDisplay').textContent = '00:00:00';
+        document.getElementById('btnIniciarParo').classList.remove('hidden');
+        document.getElementById('btnFinalizarParo').classList.add('hidden');
+
+        document.getElementById('retalProceso').value = '';
+        document.getElementById('retalMerma').value = '';
+        
+        document.getElementById('pesoRolloActual').value = '';
+        document.getElementById('cantidadPaquetes').value = '';
+        
+        document.getElementById('infoBarContainer').classList.remove('expanded');
+        document.querySelector('.info-bar-toggle-btn').textContent = 'Detalles';
+        clearAllMessages(); 
+        
+        const splash = document.getElementById('splashScreen');
+        splash.style.display = 'flex';
+        setTimeout(() => splash.classList.add('visible'), 10);
+        setTimeout(() => splash.classList.remove('visible'), 2500);
+        setTimeout(() => {
+            splash.style.display = 'none';
+            irA('screenLogin');
+        }, 3500);
+    }
+
+    async function cargarEstadoDeTodasLasMaquinas() {
+        const tbody = document.getElementById('tbodyEstadoMaquinas');
+        tbody.innerHTML = '<tr><td colspan="9">Cargando...</td></tr>';
+        try {
+            const response = await fetch(`${apiUrlBase}/maestros/estado_maquinas/`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+            const data = await response.json();
+            if (response.ok) {
+                tbody.innerHTML = '';
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(m => {
+                        const isActive = m.ID_Registro_KPI !== null;
+                        tbody.innerHTML += `<tr><td>${m.ID_Maquina}</td><td>${m.Maquina}</td><td>${m.Proceso}</td><td style="color:${isActive ? 'green' : 'grey'}; font-weight:bold;">${isActive ? 'Activa' : 'Inactiva'}</td><td>${m.Nombre_Usuario_Activo || '-'}</td><td>${m.Referencia_Actual || '-'}</td><td>${m.Hora_Inicio_Turno_Activo || '-'}</td><td>${m.ID_Registro_KPI || '-'}</td><td>${isActive ? `<button class="logout-button" style="font-size:0.7rem; padding: 2px 5px;" onclick="forzarFinalizarTurno(${m.ID_Registro_KPI})">Forzar Fin</button>` : ''}</td></tr>`;
+                    });
+                } else { tbody.innerHTML = '<tr><td colspan="9">No se encontraron máquinas.</td></tr>'; }
+            } else { tbody.innerHTML = `<tr><td colspan="9" class="error">${getErrorMessage(data)}</td></tr>`; }
+        } catch (error) { tbody.innerHTML = `<tr><td colspan="9" class="error">Error de conexión.</td></tr>`; }
+    }
+    
+    async function forzarFinalizarTurno(idRegistroKpi) {
+        const confirmacion = confirm(`¿Está seguro de que desea forzar la finalización del turno ID ${idRegistroKpi}?`);
+        if (!confirmacion) return;
+        
+        clearAllMessages();
+        const mensajeDiv = document.getElementById('mensajeEstadoMaquinas');
+        mensajeDiv.textContent = `Forzando finalización...`; 
+        mensajeDiv.className = 'message-area';
+        try {
+            const response = await fetch(`${apiUrlBase}/produccion/registros_kpi/${idRegistroKpi}/forzar_finalizar`, { 
+                method: 'PUT', 
+                headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({})
+            });
+            const data = await response.json();
+            if (response.ok) {
+                mensajeDiv.textContent = `Turno ${idRegistroKpi} finalizado.`; 
+                mensajeDiv.className = 'message-area exito';
+                setTimeout(cargarEstadoDeTodasLasMaquinas, 1500);
+            } else { 
+                mensajeDiv.textContent = getErrorMessage(data); 
+                mensajeDiv.className = 'message-area error'; 
+            }
+        } catch(e) { 
+            mensajeDiv.textContent = 'Error de red.'; 
+            mensajeDiv.className = 'message-area error'; 
+        }
+    }
+
+    window.onload = () => {
+        const splash = document.getElementById('splashScreen');
+        
+        todasLasPantallas.forEach(id => {
+            const pantalla = document.getElementById(id);
+            if(pantalla) pantalla.classList.add('hidden');
+        });
+
+        setTimeout(() => {
+            splash.classList.add('visible');
+        }, 10); 
+
+        setTimeout(() => {
+            splash.classList.remove('visible');
+        }, 2500); 
+
+        setTimeout(() => {
+            splash.style.display = 'none';
+            irA('screenLogin');
+        }, 3500);
+    };
+
+    // ===== NUEVAS FUNCIONES PARA EL MÓDULO DE CALIDAD =====
+    async function navegarAInspeccion() {
+        irA('screenInspeccionCalidad');
+        const divFormulario = document.getElementById('formularioInspeccionDinamico');
+        divFormulario.innerHTML = '<p>Cargando variables de calidad...</p>';
+        
+        if (!procesoSel.id || !referenciaSel.id) {
+            divFormulario.innerHTML = '<p class="error">Error: No se ha seleccionado un proceso o referencia.</p>';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${apiUrlBase}/calidad/variables_por_proceso/?id_proceso=${procesoSel.id}&referencia=${referenciaSel.id}`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(getErrorMessage(errorData));
+            }
+            
+            const data = await response.json();
+            generarFormularioInspeccion(data.data);
+
+        } catch (error) {
+            divFormulario.innerHTML = `<p class="error">Error al cargar variables: ${error.message}</p>`;
+        }
+    }
+
+    function generarFormularioInspeccion(variables) {
+        const container = document.getElementById('formularioInspeccionDinamico');
+        container.innerHTML = ''; // Limpiar el contenedor
+
+        if (!variables || variables.length === 0) {
+            container.innerHTML = '<p>No hay variables de calidad definidas para este proceso/referencia.</p>';
+            return;
+        }
+
+        const loteGroup = document.createElement('div');
+        loteGroup.className = 'form-group-dinamico';
+        loteGroup.innerHTML = `
+            <label for="inspeccionLote">Número de Lote:</label>
+            <div class="input-wrapper">
+                <input type="text" id="inspeccionLote" placeholder="Lote...">
+            </div>
+        `;
+        container.appendChild(loteGroup);
+        
+        const loteInput = document.getElementById('inspeccionLote');
+        let prefijoLote = ''; 
+
+        if (referenciaSel && referenciaSel.item && referenciaSel.item.Linea_Producto) {
+            const lineaProductoNormalizada = referenciaSel.item.Linea_Producto.toUpperCase().trim();
+            
+            if (lineaProductoNormalizada === 'RECYPACK') {
+                prefijoLote = 'RECYPACK-';
+            } else if (lineaProductoNormalizada === 'DLT') {
+                prefijoLote = 'DLT-';
+            }
+
+            if (prefijoLote) {
+                loteInput.value = prefijoLote;
+                loteInput.addEventListener('input', (e) => {
+                    if (!e.target.value.startsWith(prefijoLote)) {
+                        e.target.value = prefijoLote;
+                    }
+                });
+                loteInput.addEventListener('click', (e) => {
+                    e.target.setSelectionRange(e.target.value.length, e.target.value.length);
+                });
+            }
+        }
+
+        variables.forEach(v => {
+            const formGroup = document.createElement('div');
+            formGroup.className = 'form-group-dinamico';
+            formGroup.dataset.variableId = v.ID_Variable;
+            formGroup.dataset.tipoDato = v.Tipo_Dato;
+
+            const label = document.createElement('label');
+            label.textContent = v.Nombre_Variable + (v.Unidad_Medida ? ` (${v.Unidad_Medida})` : '');
+            
+            const inputWrapper = document.createElement('div');
+            inputWrapper.className = 'input-wrapper';
+
+            switch(v.Tipo_Dato) {
+                case 'NUMERICO':
+                    const inputNum = document.createElement('input');
+                    inputNum.type = 'number';
+                    inputNum.step = '0.01';
+                    inputWrapper.appendChild(inputNum);
+                    break;
+                case 'TEXTO':
+                    const inputText = document.createElement('input');
+                    inputText.type = 'text';
+                    inputWrapper.appendChild(inputText);
+                    break;
+                case 'BOOLEANO':
+                    const btnConforme = document.createElement('button');
+                    btnConforme.textContent = 'C';
+                    btnConforme.title = 'Conforme';
+                    btnConforme.className = 'boolean-btn conforme';
+                    btnConforme.dataset.value = '1';
+                    
+                    const btnNoConforme = document.createElement('button');
+                    btnNoConforme.textContent = 'NC';
+                    btnNoConforme.title = 'No Conforme';
+                    btnNoConforme.className = 'boolean-btn no-conforme';
+                    btnNoConforme.dataset.value = '0';
+
+                    btnConforme.onclick = () => {
+                        btnConforme.classList.add('selected');
+                        btnNoConforme.classList.remove('selected');
+                    };
+                    btnNoConforme.onclick = () => {
+                        btnNoConforme.classList.add('selected');
+                        btnConforme.classList.remove('selected');
+                    };
+                    
+                    inputWrapper.appendChild(btnConforme);
+                    inputWrapper.appendChild(btnNoConforme);
+                    break;
+            }
+            
+            formGroup.appendChild(label);
+            formGroup.appendChild(inputWrapper);
+            container.appendChild(formGroup);
+        });
+    }
+
+    async function guardarInspeccionCalidad() {
+        const resultadoDiv = document.getElementById('resultadoInspeccion');
+        resultadoDiv.innerHTML = 'Guardando inspección...';
+        resultadoDiv.className = 'message-area';
+
+        const loteInput = document.getElementById('inspeccionLote');
+        const lote = loteInput ? loteInput.value : '';
+
+        if (!lote.trim()) {
+            resultadoDiv.textContent = 'Error: El número de lote es obligatorio.';
+            resultadoDiv.className = 'message-area error';
+            return;
+        }
+
+        const detalles = [];
+        const gruposDeVariables = document.querySelectorAll('#formularioInspeccionDinamico .form-group-dinamico');
+        
+        for (const grupo of gruposDeVariables) {
+            if (!grupo.dataset.variableId) continue;
+
+            const idVariable = grupo.dataset.variableId;
+            const tipoDato = grupo.dataset.tipoDato;
+            let valorMedido = null;
+
+            if (tipoDato === 'NUMERICO' || tipoDato === 'TEXTO') {
+                const input = grupo.querySelector('input');
+                if (input && input.value.trim() !== '') {
+                    valorMedido = input.value;
+                }
+            } else if (tipoDato === 'BOOLEANO') {
+                const botonSeleccionado = grupo.querySelector('.boolean-btn.selected');
+                if (botonSeleccionado) {
+                    valorMedido = botonSeleccionado.dataset.value;
+                }
+            }
+
+            if (valorMedido === null) {
+                 resultadoDiv.textContent = `Error: Por favor, complete todas las mediciones. Falta: ${grupo.querySelector('label').textContent}`;
+                 resultadoDiv.className = 'message-area error';
+                 return;
+            }
+
+            detalles.push({
+                ID_Variable_Calidad: parseInt(idVariable),
+                Valor_Medido: valorMedido
+            });
+        }
+        
+        if (detalles.length === 0) {
+            resultadoDiv.textContent = 'Error: No hay mediciones para guardar.';
+            resultadoDiv.className = 'message-area error';
+            return;
+        }
+
+        const datosParaGuardar = {
+            ID_Registro_KPI: idRegistroKPIActivoGlobal,
+            Lote: lote,
+            detalles: detalles
+        };
+
+        try {
+            const response = await fetch(`${apiUrlBase}/calidad/inspecciones/`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(datosParaGuardar)
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                const resultado = data.Resultado_General;
+                let mensaje = `Inspección #${data.ID_Inspeccion} guardada. Resultado: ${resultado}`;
+                let claseCSS = 'exito';
+
+                switch (resultado) {
+                    case 'APROBADO_CON_DESVIACION':
+                        claseCSS = 'advertencia';
+                        break;
+                    case 'RECHAZADO':
+                        claseCSS = 'error';
+                        break;
+                    case 'APROBADO':
+                    default:
+                        claseCSS = 'exito';
+                        break;
+                }
+
+                resultadoDiv.textContent = mensaje;
+                resultadoDiv.className = `message-area ${claseCSS}`;
+
+                setTimeout(() => {
+                    irA('screenActividades');
+                }, 3000);
+            } else {
+                throw new Error(getErrorMessage(data));
+            }
+
+        } catch (error) {
+            resultadoDiv.textContent = `Error al guardar: ${error.message}`;
+            resultadoDiv.className = 'message-area error';
+        }
+    }
+    // ===== FIN DE NUEVAS FUNCIONES =====
+</script>
+</body>
+</html>
